@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <title>ReMapper|Edit Trip</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
+    </head>
+    <body>
+        <div style="margin:30px">
+            <div style="float:left"><h1>My Trip</h1><a href=newtrip.html><h4>change</h4></a></div>
+            <div style="float:right; background:lightsteelblue"><a href=opentrip.html><h3>Save</h3></a></div>
+            <br><br><br><br>
+            <hr>
+            <div style="float:left">
+                <div id="mapid" style="width: 600px; height: 400px;"></div>
+                <script>
+                    var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+                    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+                        maxZoom: 18,
+                        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+                            '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                            'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                        id: 'mapbox.streets'
+                    }).addTo(mymap);
+                </script>
+            </div>
+            <div style="float:left; padding:20px; background: lightcoral;">
+                <h2>Point 1</h2>
+                <img src=test.jpg height="100px"><img src=test.jpg height="100px"><img src=test.jpg height="100px">
+                <hr>
+                <h2>Point 2</h2>
+                <img src=test.jpg height="100px"><img src=test.jpg height="100px"><img src=test.jpg height="100px">
+            </div>
+        </div>
+    </body>
+</html>

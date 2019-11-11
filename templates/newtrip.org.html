@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>ReMapper|New Trip</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <div style="margin:30px; font-family: Calibri">
+        <h1>New Trip</h1>
+        <a href=allmaps.html><h4>Cancel</h4></a>
+        <hr>
+        <form method=post enctype=multipart/form-data>
+        <h3>Trip Name</h3> <input type="text" name='name'><br>
+        <h3>Trip Date</h3><input type="date" name="date">
+        <hr>
+        <h3>GPX File</h3><input type="file" name="gpxfile">
+        <h3>Images</h3><input type="file" multiple name=images>
+        <hr>
+        <input type=submit value=Upload>
+        <!--<a href=edittrip.html><h4>Next</h4></a>-->
+        </form>
+        </div>
+    </body>
+</html>
