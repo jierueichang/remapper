@@ -83,11 +83,12 @@ print geos'''
 def return_gps(path):
     files = []
     # r=root, d=directories, f = files
-    for r, d, f in os.walk('static\\trips\\'+path+'\\images'):
+    print path
+    for r, d, f in os.walk('static\\users\\'+path+'\\images'):
         for file in f:
             print file
             if 1:
-                files.append([str('trips\\'+path+'\\images\\'+file)])
+                files.append([str('users\\'+path+'\\images\\'+file)])
     geos = []
     for n in files:
         for i in n:

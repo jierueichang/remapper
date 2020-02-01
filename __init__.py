@@ -1,5 +1,7 @@
 import os
 from flask import Flask, flash, request, redirect, url_for, render_template
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 import re
 import pickle
@@ -17,7 +19,34 @@ app.config['SESSION_TYPE'] = 'filesystem'
 MAP_ROUTE = []
 mainpage_counter = 0
 
-logged_on = False
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = '/login'
+
+class User():
+    def __init__(self, name,password):
+        self.is_authenticated = True
+        self.is_active = True
+        self.is_anonymous = False
+        self.password = password
+        try: self.id = unicode(name,'utf-8')
+        except: self.id = name
+    def get_id(self):
+        return self.id
+
+def handle_register(name,password,p):
+    try:
+        with open(p,'r') as f:
+            userdata = pickle.load(f)
+    except:
+        userdata = []
+    for i in userdata:
+        if i.id == name:
+            flash('Username already taken')
+            return redirect(url_for('register'))
+    userdata.append(User(name,password))
+    with open(p,'w') as f:
+        pickle.dump(userdata,f,2)
 
 def parse_gpx(gpxFName):
     coords = []
@@ -40,32 +69,66 @@ def retrieve_images(path):
     # r=root, d=directories, f = files
     for r, d, f in os.walk('static\\trips\\'+path):
         for file in f:
-            print file
             if '.JPG' in file:
                 files.append([path+'\\'+file])
+
+@login_manager.user_loader
+def load_user(id):
+    print id
+    return User(id,'123')
 
 @app.route('/login',methods=['GET','POST'])
 def login():
     global logged_on
     if request.method == 'POST':
+        username = request.form['username']
         password = request.form['password']
-        if password == 'tercesrepus':
-            logged_on = True
-            flash('Login Successful')
+        user = User(username,password)
+        with open('users.pickle','r') as p:
+            users = pickle.load(p)
+        print users
+        print username
+        for i in users:
+            if i.id == username:
+                userdata = i
+                break
+        else:
+            flash('Invalid Username')
+            return redirect(url_for('mainpage'))
+        if password == userdata.password:
+            login_user(user)
+            flash('Hi, '+username)
             return redirect(url_for('mainpage'))
         flash('Invalid Password')
         return redirect(url_for('login'))
     return render_template('login2.html')
 
+@app.route('/register',methods=['GET','POST'])
+def register():
+    global logged_on
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        npass = request.form['password2']
+        if password == npass:
+            handle_register(username,password,'users.pickle')
+            user = User(username,password)
+            login_user(user)
+            flash('Hi, '+username)
+            return redirect(url_for('mainpage'))
+        flash("Passwords Don't Match")
+        return redirect(url_for('register'))
+    return render_template('register.html')
 
-@app.route('/edit')
+'''@app.route('/edit')
 def editpage():
-    '''coords=[[35.39028, 138.74139], [35.37417, 138.74167], [35.37167, 138.73944], [35.36889, 138.73889], [35.36806, 138.73722], [35.36722, 138.73611], [35.36556, 138.73278], [35.36, 138.73167], [35.35944, 138.73111], [35.36056, 138.72722], [35.36472, 138.73361], [35.36917, 138.74111], [35.37111, 138.74333], [35.37778, 138.75167], [35.39361, 138.73361], [35.39417, 138.73306]]
+    'coords=[[35.39028, 138.74139], [35.37417, 138.74167], [35.37167, 138.73944], [35.36889, 138.73889], [35.36806, 138.73722], [35.36722, 138.73611], [35.36556, 138.73278], [35.36, 138.73167], [35.35944, 138.73111], [35.36056, 138.72722], [35.36472, 138.73361], [35.36917, 138.74111], [35.37111, 138.74333], [35.37778, 138.75167], [35.39361, 138.73361], [35.39417, 138.73306]]
     images=[['Mt_Fuji\\IMG_2807.JPG','Mt_Fuji\\IMG_2807.JPG','Mt_Fuji\\IMG_2807.JPG'], ['Mt_Fuji\\IMG_2872.JPG'], ['Mt_Fuji\\IMG_2920.JPG'], ['Mt_Fuji\\IMG_2943.JPG'], ['Mt_Fuji\\IMG_2962.JPG'], ['Mt_Fuji\\IMG_3005.JPG'], ['Mt_Fuji\\IMG_3031.JPG'], ['Mt_Fuji\\IMG_3055.JPG'], ['Mt_Fuji\\IMG_3061.JPG'], ['Mt_Fuji\\IMG_3072.JPG'], ['Mt_Fuji\\IMG_3129.JPG'], ['Mt_Fuji\\IMG_3148.JPG'], ['Mt_Fuji\\IMG_3153.JPG'], ['Mt_Fuji\\IMG_3157.JPG'], ['Mt_Fuji\\IMG_3164.JPG'], ['Mt_Fuji\\IMG_3172.JPG']]
     images=[['jauntimages\\IMG_5690.JPG', 'jauntimages\\IMG_5691.JPG', 'jauntimages\\IMG_5694.JPG'], ['jauntimages\\IMG_5741.JPG'], ['jauntimages\\IMG_5742.JPG'], ['jauntimages\\IMG_5745.JPG', 'jauntimages\\IMG_5746.JPG', 'jauntimages\\IMG_5747.JPG'], ['jauntimages\\IMG_5765.JPG'], ['jauntimages\\IMG_5795.JPG', 'jauntimages\\IMG_5797.JPG', 'jauntimages\\IMG_5799.JPG', 'jauntimages\\IMG_5719.JPG']]
     coords=[[40.37194, -74.63389], [40.375, -74.63222], [40.37222, -74.63417], [40.37222, -74.63417], [40.37222, -74.63417], [40.37194, -74.63528], [40.375, -74.63222]]
     comments=[]
-    return render_template('edittripv3.html',name="Jaunt to Barbara Smoyer Park",images=images,imgcoords=coords,route=MAP_ROUTE)'''
+    return render_template('edittripv3.html',name="Jaunt to Barbara Smoyer Park",images=images,imgcoords=coords,route=MAP_ROUTE)'
+'''
 
 @app.route('/brian')
 def brian():
@@ -78,6 +141,7 @@ def brian():
 
 @app.route('/view')
 def view():
+    user = request.args.get('author')
     name=request.args.get('name')
     dname=name.replace('_',' ')
     try:
@@ -88,7 +152,7 @@ def view():
     #coords=[[40.37194, -74.63389], [40.37222, -74.63417], [40.37222, -74.63417], [40.37194, -74.63528], [40.375, -74.63222]]
     #points=['Red Tree','Entrance to Trail','Road Down','More Trail','Lake','Bend in the Path','Someplace']
     #comments=['Pretty Fall Foilage','Trees, trees, trees','It is actually quite short',' ',' ','Hard to see the road because of all the leaves','Yeah. Somewhere.']
-    with open('static/trips/'+name.replace(' ',' ')+'/data.pickle','rb') as datafile:
+    with open('static/users/'+user+'/'+name+'/data.pickle','rb') as datafile:
         data=pickle.load(datafile)
         coords = data['coords']
         images = data['images']
@@ -102,13 +166,14 @@ def view():
 
 @app.route('/embed')
 def embed():
+    user = request.args.get('author')
     name=request.args.get('name')
     dname=name.replace('_',' ')
     try:
         maptype='mapbox.'+request.args.get('type')
     except:
         maptype='mapbox.satellite'
-    with open('static/trips/'+name+'/data.pickle','rb') as datafile:
+    with open('static/users/'+user+'/'+name+'/data.pickle','rb') as datafile:
         data=pickle.load(datafile)
         coords = data['coords']
         images = data['images']
@@ -120,20 +185,29 @@ def embed():
             points.append('hi')
     return render_template('embedtripv2.html',points=points,comments=comments,name=dname,images=images,imgcoords=coords,route=MAP_ROUTE,maptype=maptype)
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def mainpage():
-    global mainpage_counter
+    global logged_on, mainpage_counter
     #return render_template('allmaps.html')
     trips = []
-    for r, d, f in os.walk('static\\trips\\'):
+    print(current_user.id)
+    user = current_user.id.encode('utf8')
+    for r, d, f in os.walk('static\\users\\'+user):
         for di in d:
             trips.append(di)
         break
+    print trips
     thumbs = []
     for i in trips:
-        for r, d, f in os.walk('static\\trips\\'+i+'\\images'):
-            print f
-            thumbs.append('static/trips/'+i+'/images/'+f[0])
+        for r, d, f in os.walk('static\\users\\'+user+'\\'+i+'\\images'):
+            thumbs.append('static/users/'+user+'/'+i+'/images/'+f[0])
     '''if mainpage_counter == 0:
         mainpage_counter += 1
         return render_template('main1.html')
@@ -148,14 +222,17 @@ def mainpage():
             dtrip+=' '
         dtrip=dtrip[:-1]
         dtrips.append(dtrip)
+    print thumbs
+    print dtrips
     #return render_template('newmain.html',tripnames=['Test','Stop Failing Now'],tripurls=['test','stop_failing_now'],thumbnailimgs=['static/r.JPG','static/r.JPG'])
     return render_template('newmain.html',tripnames=dtrips,tripurls=trips,thumbnailimgs=thumbs)
 
+@login_required
 @app.route('/new', methods=['GET', 'POST'])
 def upload_file():
     global MAP_ROUTE, logged_on
     if request.method == 'POST':
-        
+        user = current_user.id.encode('utf-8')
         print(request.files)
         name = request.form['name'].replace(' ','_')
         print(name)
@@ -163,16 +240,17 @@ def upload_file():
         gpxfile = request.files['gpxfile']
         print(images)
         imagefilenames = []
-        os.makedirs('static/trips/'+name+'/images')
+        os.makedirs('static/users/'+user+'/'+name+'/images')
         for f in images:
             filename = secure_filename(f.filename)
-            f.save('static/trips/'+name+'/images/'+filename)
-        target_gpxfile = 'static/trips/'+name+secure_filename(gpxfile.filename)
+            f.save('static/users/'+user+'/'+name+'/images/'+filename)
+        target_gpxfile = 'static/users/'+user+'/'+name+'/'+secure_filename(gpxfile.filename)
         gpxfile.save(target_gpxfile)
 
         #images=[['jauntimages\\IMG_5690.JPG', 'jauntimages\\IMG_5691.JPG', 'jauntimages\\IMG_5694.JPG'], ['jauntimages\\IMG_5741.JPG','jauntimages\\IMG_5742.JPG'], ['jauntimages\\IMG_5745.JPG', 'jauntimages\\IMG_5746.JPG', 'jauntimages\\IMG_5747.JPG'], ['jauntimages\\IMG_5765.JPG'], ['jauntimages\\IMG_5797.JPG', 'jauntimages\\IMG_5799.JPG', 'jauntimages\\IMG_5719.JPG']]
         #coords=[[40.37194, -74.63389], [40.37222, -74.63417], [40.37222, -74.63417], [40.37194, -74.63528], [40.375, -74.63222]]
-        images,coords=exiffer.return_gps(name)
+        print(user+'/'+name)
+        images,coords=exiffer.return_gps(str(user+'\\'+name))
         print(images)
         print(coords)
         if '.gpx' in target_gpxfile: MAP_ROUTE = parse_gpx(target_gpxfile)
@@ -180,7 +258,7 @@ def upload_file():
             with open(target_gpxfile) as f:
                 MAP_ROUTE = f.read()
         data = {'images':images,'coords':coords,'route':MAP_ROUTE}
-        with open('static/trips/'+name+'/data.pickle','wb') as datafile:
+        with open('static/users/'+user+'/'+name+'/data.pickle','wb') as datafile:
             pickle.dump(data,datafile,2)
         return render_template('edittripv3.html',name=name.replace('_',' '),images=images,imgcoords=coords,route=MAP_ROUTE)
     return render_template('newtrip.html')
